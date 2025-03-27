@@ -34,7 +34,7 @@ def run_game(env, players, bots):
         pygame.event.pump()
 
         # step the environment
-        finished, info = env.step(debugging=False)
+        finished, _ = env.step(debugging=False)
         
 
         if finished:

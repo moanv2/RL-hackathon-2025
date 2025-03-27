@@ -351,10 +351,10 @@ class Env:
             if distance_to_opponent < 20:           # Condition
                 reward += (20 - distance_to_opponent) * 0.2  # Reward closing in
 
+        print("\n")
         print(f"This is players info: {players_info}")
-        print(f"This is previous info: {previous_info}")
-
-        print("/"*50)
+        print(f"\nThis is previous info: {previous_info}")
+        print("-"*200)
         time.sleep(3)
         return reward
 
