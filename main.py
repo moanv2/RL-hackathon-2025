@@ -99,7 +99,7 @@ def train_single_episode(env, players, bots, config, current_stage):
 
     return episode_metrics
 
-def main():
+def main(training_mode=True):
     "--- KEEP THESE VALUES UNCHANGED ---"
     world_width = 1280
     world_height = 1280
@@ -140,7 +140,6 @@ def main():
         {"n_obstacles": 20, "duration": 300}
     ]
 
-    training_mode = True
 
     # --- create environment ---
     env = Env(
@@ -226,4 +225,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(False)
