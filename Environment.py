@@ -289,20 +289,16 @@ class Env:
             return False, final_info
 
     """TO MODIFY"""
-    def calculate_reward(self, info_dictionary, bot_username):
-        """THIS FUNCTION IS USED TO CALCULATE THE REWARD FOR A BOT"""
-        """NEEDS TO BE WRITTEN BY YOU TO FINE TUNE YOURS"""
 
-        # retrieve the players' information from the dictionary
+    def calculate_reward(self, info_dictionary, bot_username):
+        """Calculate the reward for the bot in a finite survival game."""
+
+        # Retrieve the players' information from the dictionary
         players_info = info_dictionary.get("players_info", {})
         bot_info = players_info.get(bot_username)
 
-        # if the bot is not found, return a default reward of 0
-        if bot_info is None:
-            print("Bot not found in the dictionary")
-            return 0
 
-        # extract variables from the bot's info
+        # Extract variables from the bot's info (baseline info)
         location = bot_info.get("location", [0, 0])
         rotation = bot_info.get("rotation", 0)
         rays = bot_info.get("rays", [])
@@ -314,9 +310,55 @@ class Env:
         total_rotation = bot_info.get("total_rotation", 0)
         health = bot_info.get("health", 0)
 
-        # calculate reward:
+        # Initialize reward
         reward = 0
-        # add your reward calculation here
 
-        self.last_damage[bot_username] = damage_dealt
+        # Check if bot is alive (critical in a finite game)
+        if not alive:
+            reward -= 100  # Large penalty for death
+            return reward
+
+        # Reward for scanning opponents with rays
+        enemies_detected = sum(1 for ray in rays if ray.get("hit_player", False))
+        if enemies_detected > 0:
+            reward += 2 * enemies_detected  # Reward for each enemy detected
+
+        # Reward for dealing damage
+        delta_damage = damage_dealt - self.last_damage_dealt.get(bot_username, 0)
+        if delta_damage > 0:
+            reward += delta_damage * 0.5  # Reward proportional to damage dealt
+
+        # Penalty for taking damage
+        delta_health = self.last_health.get(bot_username, health) - health
+        if delta_health > 0:
+            reward -= delta_health * 0.3  # Penalty proportional to damage taken
+
+        # Reward for kills (significant reward)
+        delta_kills = kills - self.last_kills.get(bot_username, 0)
+        if delta_kills > 0:
+            reward += 10 * delta_kills  # Substantial reward for each kill
+
+        # Small reward for movement (exploration)
+        delta_movement = meters_moved - self.last_meters_moved.get(bot_username, 0)
+        if delta_movement > 0:
+            reward += delta_movement * 0.1  # Small reward for exploration
+
+        # Small reward for maintaining ammo levels
+        if current_ammo > self.last_ammo.get(bot_username, 0):
+            reward += 0.5  # Small reward for collecting ammo
+
+        # Update last state values for next calculation
+        self.last_health[bot_username] = health
+        self.last_damage_dealt[bot_username] = damage_dealt
+        self.last_kills[bot_username] = kills
+        self.last_meters_moved[bot_username] = meters_moved
+        self.last_ammo[bot_username] = current_ammo
+
         return reward
+
+
+    # Train model with the reward function
+    # Keep the logging in another file for now, do not change much
+    # Visually implement it later
+
+    # For future tuning
