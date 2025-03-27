@@ -68,11 +68,19 @@ def train_single_episode(env, players, bots, config, current_stage):
     # Initialize last_damage_tracker unconditionally
     env.last_damage_tracker = {player.username: 0 for player in players}
 
+    previous_info = {}
+
+    for i, player in enumerate(players):
+        player_info = player.get_info()
+        player_info["shot_fired"] = False
+        player_info["closest_opponent"] = players[1].get_info()["location"] if i == 0 else players[0].get_info()["location"]
+        previous_info[player.username] = player_info
+
     while env.steps < config["tick_limit"]:
         finished, info = env.step(debugging=False)
 
         for player, bot in zip(players, bots):
-            reward = env.calculate_reward(info, player.username)
+            reward = env.calculate_reward(info, player.username, previous_info)
             reward *= 1.0 - (current_stage * 0.1)  # scale by curriculum stage
             episode_metrics["rewards"][player.username] += reward
 
@@ -94,6 +102,7 @@ def train_single_episode(env, players, bots, config, current_stage):
 
             episode_metrics["epsilon"][player.username] = bot.epsilon
 
+        previous_info = info["players_info"]
         if finished:
             break
 
@@ -225,4 +234,4 @@ def main(training_mode=True):
 
 
 if __name__ == "__main__":
-    main(False)
+    main(True)

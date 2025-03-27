@@ -1,8 +1,11 @@
 import math
 import os
+import time
+
 import pygame
 from components.advanced_UI import game_UI
 from components.world_gen import spawn_objects
+import numpy as np
 
 
 class Env:
@@ -290,15 +293,20 @@ class Env:
 
     """TO MODIFY"""
 
-    def calculate_reward(self, info_dictionary, bot_username):
-        """Calculate the reward for the bot in a finite survival game."""
+    def calculate_reward(self, info_dictionary, bot_username, previous_info):
+        """THIS FUNCTION IS USED TO CALCULATE THE REWARD FOR A BOT"""
+        """NEEDS TO BE WRITTEN BY YOU TO FINE TUNE YOURS"""
 
-        # Retrieve the players' information from the dictionary
+        # retrieve the players' information from the dictionary
         players_info = info_dictionary.get("players_info", {})
         bot_info = players_info.get(bot_username)
 
+        # if the bot is not found, return a default reward of 0
+        if bot_info is None:
+            print("Bot not found in the dictionary")
+            return 0
 
-        # Extract variables from the bot's info (baseline info)
+        # extract variables from the bot's info
         location = bot_info.get("location", [0, 0])
         rotation = bot_info.get("rotation", 0)
         rays = bot_info.get("rays", [])
@@ -310,51 +318,46 @@ class Env:
         total_rotation = bot_info.get("total_rotation", 0)
         health = bot_info.get("health", 0)
 
-        # Initialize reward
+        # calculate reward:
         reward = 0
+        # add your reward calculation here
 
-        # Check if bot is alive (critical in a finite game)
-        if not alive:
-            reward -= 100  # Large penalty for death
-            return reward
+        """
+        Reward vars
+        R = w₁S + w₂D + w₃K + w₄H + w₅E + w₆A
+        """
 
-        # Reward for scanning opponents with rays
-        enemies_detected = sum(1 for ray in rays if ray.get("hit_player", False))
-        if enemies_detected > 0:
-            reward += 2 * enemies_detected  # Reward for each enemy detected
+        # Distance of the two bots
+        # Variable 1
+        my_position = bot_info.get("location", [0, 0])  # get location of friendly bot position
+        opponent_position = bot_info.get("closest_opponent", None)
 
-        # Reward for dealing damage
-        delta_damage = damage_dealt - self.last_damage_dealt.get(bot_username, 0)
-        if delta_damage > 0:
-            reward += delta_damage * 0.5  # Reward proportional to damage dealt
+        # try to calculate the opponents distance if it is available
+        if opponent_position:
+            # Calculate Euclidean distance: sqrt((x2-x1)² + (y2-y1)²)
 
-        # Penalty for taking damage
-        delta_health = self.last_health.get(bot_username, health) - health
-        if delta_health > 0:
-            reward -= delta_health * 0.3  # Penalty proportional to damage taken
+            dx = my_position[0] - opponent_position[0]
+            dy = my_position[1] - opponent_position[1]
+            distance_to_opponent = (dx ** 2 + dy ** 2) ** 0.5
 
-        # Reward for kills (significant reward)
-        delta_kills = kills - self.last_kills.get(bot_username, 0)
-        if delta_kills > 0:
-            reward += 10 * delta_kills  # Substantial reward for each kill
+            # offensive strat (positive reward if they get closer to each other)
+            # change of position in this step to previous step
+            # if distance is positive (further apart) we punish
+            # if distance is negative (closer tgt) we reward
+            # info dict is the current info of current step we want it on the future step
+            # Saved where it can be accessed by calculate func
+            # previous_step is empty reward is zero (we cant calc)
 
-        # Small reward for movement (exploration)
-        delta_movement = meters_moved - self.last_meters_moved.get(bot_username, 0)
-        if delta_movement > 0:
-            reward += delta_movement * 0.1  # Small reward for exploration
+            if distance_to_opponent < 20:           # Condition
+                reward += (20 - distance_to_opponent) * 0.2  # Reward closing in
 
-        # Small reward for maintaining ammo levels
-        if current_ammo > self.last_ammo.get(bot_username, 0):
-            reward += 0.5  # Small reward for collecting ammo
+        print(f"This is players info: {players_info}")
+        print(f"This is previous info: {previous_info}")
 
-        # Update last state values for next calculation
-        self.last_health[bot_username] = health
-        self.last_damage_dealt[bot_username] = damage_dealt
-        self.last_kills[bot_username] = kills
-        self.last_meters_moved[bot_username] = meters_moved
-        self.last_ammo[bot_username] = current_ammo
-
+        print("/"*50)
+        time.sleep(3)
         return reward
+
 
 
     # Train model with the reward function
