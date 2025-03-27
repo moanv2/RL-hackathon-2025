@@ -1,3 +1,4 @@
+import argparse
 import os
 import json
 from datetime import datetime
@@ -34,14 +35,7 @@ def run_game(env, players, bots):
 
         # step the environment
         finished, info = env.step(debugging=False)
-
-        # update bots with new information, not needed
-        for player, bot in zip(players, bots):
-            reward = env.calculate_reward(info, player.username)
-            next_info = player.get_info()
-            if 'closest_opponent' not in next_info:
-                next_info['closest_opponent'] = env.find_closest_opponent(player)
-            bot.remember(reward, next_info, finished)
+        
 
         if finished:
             print("Game finished!")
@@ -108,7 +102,28 @@ def train_single_episode(env, players, bots, config, current_stage):
 
     return episode_metrics
 
-def main(training_mode=True):
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('true', 't', 'yes', 'y', '1'):
+        return True
+    elif v.lower() in ('false', 'f', 'no', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--train',
+        type=str2bool,
+        default=True,
+        help='A boolean flag to activate training mode (default: True)'
+    )
+    args = parser.parse_args()
+    training_mode = args.train
+
     "--- KEEP THESE VALUES UNCHANGED ---"
     world_width = 1280
     world_height = 1280
@@ -234,4 +249,4 @@ def main(training_mode=True):
 
 
 if __name__ == "__main__":
-    main(True)
+    main()
