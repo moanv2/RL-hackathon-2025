@@ -1,11 +1,11 @@
+import logging
 import math
 import os
-import time
 
 import pygame
+
 from components.advanced_UI import game_UI
 from components.world_gen import spawn_objects
-import numpy as np
 
 
 class Env:
@@ -290,107 +290,49 @@ class Env:
         else:
             # return the final state from the last frame
             return False, final_info
-
-    """TO MODIFY"""
+        
+    def _get_distance_to_opponent(self, info):
+        """
+        Euclidian distance between current bot's location and its opponent
+        """
+        dx = info["location"][0] - info["closest_opponent"][0]
+        dy = info["location"][1] - info["closest_opponent"][1]
+        
+        return (dx ** 2 + dy ** 2) ** 0.5
+    
 
     def calculate_reward(self, info_dictionary, bot_username, previous_info):
-        """THIS FUNCTION IS USED TO CALCULATE THE REWARD FOR A BOT"""
-        """NEEDS TO BE WRITTEN BY YOU TO FINE TUNE YOURS"""
-
-        # retrieve the players' information from the dictionary
-        players_info = info_dictionary.get("players_info", {})
-        bot_info = players_info.get(bot_username)
-
-        # if the bot is not found, return a default reward of 0
-        if bot_info is None:
-            print("Bot not found in the dictionary")
-            return 0
-
-        # extract variables from the bot's info
-        location = bot_info.get("location", [0, 0])
-        rotation = bot_info.get("rotation", 0)
-        rays = bot_info.get("rays", [])
-        current_ammo = bot_info.get("current_ammo", 0)
-        alive = bot_info.get("alive", False)
-        kills = bot_info.get("kills", 0)
-        damage_dealt = bot_info.get("damage_dealt", 0)
-        meters_moved = bot_info.get("meters_moved", 0)
-        total_rotation = bot_info.get("total_rotation", 0)
-        health = bot_info.get("health", 0)
-
-        # calculate reward:
-        reward = 0
-        # add your reward calculation here
-
         """
+        Calculate reward for a given step of the environment and for a given bot
+
         Reward vars
         R = w₁S + w₂D + w₃K + w₄H + w₅E + w₆A
         """
+        reward = 0
 
-        # Distance of the two bots
-        # Variable 1
-        my_position = bot_info.get("location", [0, 0])  # get location of friendly bot position
-        opponent_position = bot_info.get("closest_opponent", None)
+        players_info = info_dictionary.get("players_info", {})
+        player_current_info = players_info.get(bot_username)
+        player_previous_info = previous_info.get(bot_username)
 
-        # try to calculate the opponents distance if it is available
-        if opponent_position:
-            # Calculate Euclidean distance: sqrt((x2-x1)² + (y2-y1)²)
+        assert player_current_info is not None
+        assert player_previous_info is not None
 
-            dx = my_position[0] - opponent_position[0]
-            dy = my_position[1] - opponent_position[1]
-            distance_to_opponent = (dx ** 2 + dy ** 2) ** 0.5
+        # --- Rewarding closing distance
+        current_distance_to_opponent = self._get_distance_to_opponent(player_current_info)
+        previous_distance_to_opponent = self._get_distance_to_opponent(player_previous_info)
 
-            # offensive strat (positive reward if they get closer to each other)
-            # change of position in this step to previous step
-            # if distance is positive (further apart) we punish
-            # if distance is negative (closer tgt) we reward
-            # info dict is the current info of current step we want it on the future step
-            # Saved where it can be accessed by calculate func
-            # previous_step is empty reward is zero (we cant calc)
+        if current_distance_to_opponent < 20:
+            reward += (20 - current_distance_to_opponent) * 0.5
+        
 
-            # Testing to see if this works
-            # New dictionary that stores the last distance from the previous epoch
-            if not hasattr(self, "last_distance"):
-                self.last_distance = {}
+        # --- Encourage retreating / penalize not retreating when taking damage
+        current_health = player_current_info.get("health")
+        previous_health = player_previous_info.get("health")
 
-            # Variable one, distance (offensive)
-            if distance_to_opponent < 20:           # Condition
-                reward += (20 - distance_to_opponent) * 0.5  # Reward closing in
+        if current_health < previous_health:
+            if current_distance_to_opponent <= previous_distance_to_opponent:
+                reward -= (previous_distance_to_opponent - current_distance_to_opponent) * 0.5
+            else:  # Reward Bot for retreating
+                reward += (current_distance_to_opponent - previous_distance_to_opponent) * 0.5
 
-            # Variable one, distance (defensive)
-            # Get previous health to determine what to do next
-            previous_health = self.last_health.get(bot_username, health)
-
-            # Call the dictionary and get the distance to the opponent
-            previous_distance = self.last_distance.get(bot_username, distance_to_opponent)
-
-            # Health dropped since last epoch
-            if health < previous_health:
-                # Bot getting closer or nor moving away
-                if distance_to_opponent <= previous_distance:
-                    # Penalize for not retreating when taking damage
-                    reward -= (previous_distance - distance_to_opponent) * 0.5
-                else:  # Bot is retreating
-                    # Reward for increasing distance when health is dropping
-                    reward += (distance_to_opponent - previous_distance) * 0.5
-
-        # Variable two, explore environment
-
-            # will begin to program logic tonight (28/03/25)
-
-        # variable three, shot_fired
-
-            # will leave this for weekend
-        print("\n")
-        print(f"This is players info: {players_info}")
-        print(f"\nThis is previous info: {previous_info}")
-        print("-"*200)
-        time.sleep(3)
         return reward
-
-
-
-    # Train model with the reward function
-    # Keep the logging in another file for now, do not change much
-    # Visually implement it later
-

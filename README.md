@@ -1,5 +1,22 @@
 # AI Bot Development Hackathon
 
+## Instructions to run:
+- **You can run the script in training mode with:**
+```
+python main.py
+```
+
+- **If you want to run the script in display mode, add the arg:**
+```
+python main.py --train False
+```
+
+- **If you want to change the logging level (by default it is INFO), add the arg:**
+```
+python main.py --log-level DEBUG
+```
+
+
 ## Colab Notebook
 You can view the example notebook here:  
 [Colab Notebook](https://colab.research.google.com/drive/1HWwft1d0rQaX3zbsRZlCyHAYo5P4Naid)

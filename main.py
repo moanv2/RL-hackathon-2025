@@ -1,13 +1,46 @@
 import argparse
-import os
 import json
+import logging
+import os
 from datetime import datetime
-import torch
+
 import matplotlib.pyplot as plt
 import pygame
-from Environment import Env
+import torch
+
 from bots.example_bot import MyBot
 from components.character import Character
+from Environment import Env
+
+
+# --- these variables shouldn't be touched ---
+WORLD_WIDTH = 1280
+WORLD_HEIGHT = 1280
+DISPLAY_WIDTH = 800
+DISPLAY_HEIGHT = 800
+
+# --- config for the training of the model ---
+CONFIG = {
+    "frame_skip": 4,
+    "tick_limit": 2400,
+    "num_epochs": 50,
+    "action_size": 56,
+    "hyperparameters": {
+        "double_dqn": True,
+        "learning_rate": 0.0001,
+        "batch_size": 64,
+        "gamma": 0.99,
+        "epsilon_decay": 0.9999,
+    }
+}
+
+# --- changes number of obstacles ---
+CURRICULUM_STAGES = [
+    {"n_obstacles": 10, "duration": 100},
+    {"n_obstacles": 15, "duration": 200},
+    {"n_obstacles": 20, "duration": 300}
+]
+
 
 def run_game(env, players, bots):
     """Runs the game in display mode for human viewing"""
@@ -36,12 +69,12 @@ def run_game(env, players, bots):
         # step the environment
         finished, _ = env.step(debugging=False)
         
-
         if finished:
             print("Game finished!")
             # wait a moment to show the final state
             pygame.time.delay(3000)  # 3 seconds delay
             break
+
 
 def train_single_episode(env, players, bots, config, current_stage):
     """Trains a single episode in one environment"""
@@ -102,6 +135,9 @@ def train_single_episode(env, players, bots, config, current_stage):
 
     return episode_metrics
 
+
+# --- CLI arguments ---
+
 def str2bool(v):
     if isinstance(v, bool):
         return v
@@ -112,8 +148,7 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
-
-def main():
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--train',
@@ -121,15 +156,21 @@ def main():
         default=True,
         help='A boolean flag to activate training mode (default: True)'
     )
-    args = parser.parse_args()
-    training_mode = args.train
+    parser.add_argument(
+        '--log-level',
+        type=str,
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the logging level (default: INFO)'
+    )
+    return parser.parse_args()
 
-    "--- KEEP THESE VALUES UNCHANGED ---"
-    world_width = 1280
-    world_height = 1280
-    display_width = 800
-    display_height = 800
-    "---"
+
+
+def main():
+    args = parse_args()
+    training_mode = args.train
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()))
 
     # --- setup output directory using time ---
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -138,43 +179,20 @@ def main():
     os.makedirs(f"{run_dir}/models", exist_ok=True)
     os.makedirs(f"{run_dir}/plots", exist_ok=True)
 
-    # --- config for the training of the model ---
-    config = {
-        "frame_skip": 4,
-        "tick_limit": 2400,
-        "num_epochs": 50,
-        "action_size": 56,
-        "hyperparameters": {
-            "double_dqn": True,
-            "learning_rate": 0.0001,
-            "batch_size": 64,
-            "gamma": 0.99,
-            "epsilon_decay": 0.9999,
-        }
-    }
-
     # --- save config to file for debugging purposes ---
     with open(f"{run_dir}/config.json", "w") as f:
-        json.dump(config, f, indent=4)
-
-    # --- changes number of obstacles ---
-    curriculum_stages = [
-        {"n_obstacles": 10, "duration": 100},
-        {"n_obstacles": 15, "duration": 200},
-        {"n_obstacles": 20, "duration": 300}
-    ]
-
+        json.dump(CONFIG, f, indent=4)
 
     # --- create environment ---
     env = Env(
         training=training_mode,
         use_game_ui=False,
-        world_width=world_width,
-        world_height=world_height,
-        display_width=display_width,
-        display_height=display_height,
-        n_of_obstacles=curriculum_stages[0]["n_obstacles"],
-        frame_skip=config["frame_skip"]
+        world_width=WORLD_WIDTH,
+        world_height=WORLD_HEIGHT,
+        display_width=DISPLAY_WIDTH,
+        display_height=DISPLAY_HEIGHT,
+        n_of_obstacles=CURRICULUM_STAGES[0]["n_obstacles"],
+        frame_skip=CONFIG["frame_skip"]
     )
 
     world_bounds = env.get_world_bounds()
@@ -189,12 +207,12 @@ def main():
 
     bots = []
     for _ in players:
-        bot = MyBot(action_size=config["action_size"])
-        bot.use_double_dqn = config["hyperparameters"]["double_dqn"]
-        bot.learning_rate = config["hyperparameters"]["learning_rate"]
-        bot.batch_size = config["hyperparameters"]["batch_size"]
-        bot.gamma = config["hyperparameters"]["gamma"]
-        bot.epsilon_decay = config["hyperparameters"]["epsilon_decay"]
+        bot = MyBot(action_size=CONFIG["action_size"])
+        bot.use_double_dqn = CONFIG["hyperparameters"]["double_dqn"]
+        bot.learning_rate = CONFIG["hyperparameters"]["learning_rate"]
+        bot.batch_size = CONFIG["hyperparameters"]["batch_size"]
+        bot.gamma = CONFIG["hyperparameters"]["gamma"]
+        bot.epsilon_decay = CONFIG["hyperparameters"]["epsilon_decay"]
         bot.optimizer = torch.optim.Adam(bot.model.parameters(), lr=bot.learning_rate)
         bots.append(bot)
 
@@ -206,20 +224,20 @@ def main():
         all_rewards = {player.username: [] for player in players}
 
         # --- training Loop ---
-        for epoch in range(config["num_epochs"]):
-            print(f"Epoch {epoch + 1}/{config['num_epochs']}")
+        for epoch in range(CONFIG["num_epochs"]):
+            print(f"Epoch {epoch + 1}/{CONFIG['num_epochs']}")
 
             # determine current curriculum stage
             total_epochs = 0
-            for i, stage in enumerate(curriculum_stages):
+            for i, stage in enumerate(CURRICULUM_STAGES):
                 total_epochs += stage["duration"]
                 if epoch < total_epochs:
                     current_stage = i
                     break
 
-            env.n_of_obstacles = curriculum_stages[current_stage]["n_obstacles"]
+            env.n_of_obstacles = CURRICULUM_STAGES[current_stage]["n_obstacles"]
 
-            metrics = train_single_episode(env, players, bots, config, current_stage)
+            metrics = train_single_episode(env, players, bots, CONFIG, current_stage)
 
             for idx, bot in enumerate(bots):
                 torch.save(bot.model.state_dict(), f"{run_dir}/models/bot_model_{idx}_epoch_{epoch + 1}.pth")
