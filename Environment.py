@@ -348,9 +348,39 @@ class Env:
             # Saved where it can be accessed by calculate func
             # previous_step is empty reward is zero (we cant calc)
 
-            if distance_to_opponent < 20:           # Condition
-                reward += (20 - distance_to_opponent) * 0.2  # Reward closing in
+            # Testing to see if this works
+            # New dictionary that stores the last distance from the previous epoch
+            if not hasattr(self, "last_distance"):
+                self.last_distance = {}
 
+            # Variable one, distance (offensive)
+            if distance_to_opponent < 20:           # Condition
+                reward += (20 - distance_to_opponent) * 0.5  # Reward closing in
+
+            # Variable one, distance (defensive)
+            # Get previous health to determine what to do next
+            previous_health = self.last_health.get(bot_username, health)
+
+            # Call the dictionary and get the distance to the opponent
+            previous_distance = self.last_distance.get(bot_username, distance_to_opponent)
+
+            # Health dropped since last epoch
+            if health < previous_health:
+                # Bot getting closer or nor moving away
+                if distance_to_opponent <= previous_distance:
+                    # Penalize for not retreating when taking damage
+                    reward -= (previous_distance - distance_to_opponent) * 0.5
+                else:  # Bot is retreating
+                    # Reward for increasing distance when health is dropping
+                    reward += (distance_to_opponent - previous_distance) * 0.5
+
+        # Variable two, explore environment
+
+            # will begin to program logic tonight (28/03/25)
+
+        # variable three, shot_fired
+
+            # will leave this for weekend
         print("\n")
         print(f"This is players info: {players_info}")
         print(f"\nThis is previous info: {previous_info}")
@@ -364,4 +394,3 @@ class Env:
     # Keep the logging in another file for now, do not change much
     # Visually implement it later
 
-    # For future tuning
