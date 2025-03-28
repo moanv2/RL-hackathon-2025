@@ -11,5 +11,6 @@ Every single experiment inside this directory will contain:
 - `reward_function.py`: Will contain the calculate_reward() function that was used to train the model.
 - `config.json`: The configuration that was used for training.
 - `rewards_plot.png`: The history of the rewards for both bots (0 and 1).  
+- `notes.txt`: File containing any notes or anything related to the strategy/training process or wtv.
     
 Only include bots that have been trained successfully (they learned how to maximize reward)
