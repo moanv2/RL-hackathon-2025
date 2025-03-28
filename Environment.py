@@ -335,4 +335,33 @@ class Env:
             else:  # Reward Bot for retreating
                 reward += (current_distance_to_opponent - previous_distance_to_opponent) * 0.5
 
+
+        # bro did not answer the whatsapp so i will pseudocode the 2nd var for the calc_reward func
+
+        # NOTE: This is not to hard code strategy, rather just make it and let the RL algo choose
+            # at least from what i understand, tomo we can clarify via call.
+
+        # -----------------------------
+        # Scanning opponents with ray (Variable 2: Accuracy/Precision)
+        # Goal: Encourage agent to be more precise and have better accuracy since it always shoots from the middle ray
+
+        # Get information about middle ray
+
+        # Reward accuracy with middle ray
+            # Excellent - middle ray detected an opponent (reward)
+
+            # If bot shot AND hit with middle ray, major reward for accuracy
+                # Additional reward if damage was dealt this epoch
+                    # Shot was successful in dealing damage
+
+            # Penalize slightly for not shooting when middle ray detects enemy
+                # Missed opportunity for precise shot
+
+        # Check if any rays detected opponents (even if not middle ray)
+            # Some enemies detected, but not by middle ray (small reward cuz it detected)
+            # If bot shot but middle ray didn't hit, penalize slightly
+
+        # Penalize for shooting when no enemies are detected
+            # penalize (idk 0.2 we can test it out)
+
         return reward
