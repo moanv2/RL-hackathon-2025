@@ -299,7 +299,33 @@ class Env:
         dy = info["location"][1] - info["closest_opponent"][1]
         
         return (dx ** 2 + dy ** 2) ** 0.5
-    
+
+    def accuracy_precision(self, info):
+        """
+        :param info: access into the players information
+        :return: Dictionary containing accuracy metrics
+        """
+        all_rays = info.get("rays")
+        shot_fired = info.get("shot_fired")
+        middle_ray = all_rays[2]
+
+        # Get the ray detection type from the middle ray
+        ray_detection_type = middle_ray[-1]
+
+        # Fixed variable name to match return dictionary
+        is_targeting_player = ray_detection_type == "player"
+
+        shot_accuracy = 0.0
+
+        if is_targeting_player:
+            shot_accuracy = 0.10 if shot_fired else 0.05
+        else:
+            shot_accuracy = 0.0 if not shot_fired else -0.05
+
+        return {
+            "is_targeting_player": is_targeting_player,
+            "shot_accuracy": shot_accuracy
+        }
 
     def calculate_reward(self, info_dictionary, bot_username, previous_info):
         """
@@ -322,54 +348,44 @@ class Env:
         previous_distance_to_opponent = self._get_distance_to_opponent(player_previous_info)
 
         if current_distance_to_opponent < 20:
-            reward += (20 - current_distance_to_opponent) * 0.5
-        
+            reward += (20 - current_distance_to_opponent) * 0.3
 
         # --- Encourage retreating / penalize not retreating when taking damage
         current_health = player_current_info.get("health")
         previous_health = player_previous_info.get("health")
 
         if current_health < previous_health:
+            health_diff = previous_health - current_health
+            # cap diff to prevent HUGE spikes (due to two unsuccessful runs)
+            health_diff = min(health_diff, 20)
+
             if current_distance_to_opponent <= previous_distance_to_opponent:
-                reward -= (previous_distance_to_opponent - current_distance_to_opponent) * 0.5
+                reward -= (previous_distance_to_opponent - current_distance_to_opponent) * 0.2
             else:  # Reward Bot for retreating
-                reward += (current_distance_to_opponent - previous_distance_to_opponent) * 0.5
-
-        # bro did not answer the whatsapp so i will pseudocode the 2nd var for the calc_reward func
-
-        # NOTE: This is not to hard code strategy, rather just make it and let the RL algo choose
-            # at least from what i understand, tomo we can clarify via call.
+                reward += (current_distance_to_opponent - previous_distance_to_opponent) * 0.1
 
         # -----------------------------
         # Scanning opponents with ray (Variable 2: Accuracy/Precision)
         # Goal: Encourage agent to be more precise and have better accuracy since it always shoots from the middle ray
 
-        all_rays = player_current_info.get("rays")
-        middle_ray = all_rays[2]
+        accuracy_metrics = self.accuracy_precision(player_current_info)
+        # Fixed variable name to match accuracy_precision function
+        is_targeting_player = accuracy_metrics["is_targeting_player"]
+        shot_accuracy = accuracy_metrics["shot_accuracy"]
 
-        ray_detection_type = middle_ray[-1]
-        if ray_detection_type == "player":
-            reward += 5
-        else:
-            reward -= 0.001
+        shot_fired = player_current_info.get("shot_fired")
 
-        # Reward accuracy with middle ray
-            # Excellent - middle ray detected an opponent (reward)
+        reward += shot_accuracy * 0.2
 
-            # If bot shot AND hit with middle ray, major reward for accuracy
-                # Additional reward if damage was dealt this epoch
-                    # Shot was successful in dealing damage
+        if is_targeting_player and shot_fired:
+            current_damage = player_current_info.get("damage_dealt", 0)
+            previous_damage = player_previous_info.get("damage_dealt", 0)
 
-            # Penalize slightly for not shooting when middle ray detects enemy
-                # Missed opportunity for precise shot
-
-        # Check if any rays detected opponents (even if not middle ray)
-            # Some enemies detected, but not by middle ray (small reward cuz it detected)
-            # If bot shot but middle ray didn't hit, penalize slightly
-
-        # Penalize for shooting when no enemies are detected
-            # penalize (idk 0.2 we can test it out)
+            if current_damage > previous_damage:
+                damage_diff = current_damage - previous_damage
+                # same as above capping limit
+                damage_diff = min(damage_diff, 20)
+                reward += damage_diff * 0.2  # reward for hitting
 
         return reward
-
 
