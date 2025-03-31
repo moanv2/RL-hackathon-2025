@@ -1,0 +1,45 @@
+Goal: Adding more accuracy / precision metrics to bot_2
+
+1. To encourage our agent to be more precise and have better accuracy since only shoots from the middle ray
+2. Epoch == 50
+3. Increased learning rate
+4. Reduced gamma to favor immediate rewards
+5. Reduced epsilon_decay so agent learns policy sooner
+    3b. Linear (Epsilon - Decay rate)
+
+
+
+
+
+all_rays = player_current_info.get("rays")
+shot_fired = player_current_info.get("shot_fired")
+middle_ray = all_rays[2]
+
+# Detects player and gets reward / else punish slightly
+ray_detection_type = middle_ray[-1]
+if ray_detection_type == "player":
+    reward += 1
+    if shot_fired:
+        reward += 1.5
+
+        current_damage = player_current_info.get("damage_dealt", 0)
+        previous_damage = player_previous_info.get("damage_dealt", 0)
+
+        if current_damage > previous_damage:
+            damage_diff = current_damage - previous_damage
+
+            # same as above capping limit
+            damage_diff = min(damage_diff, 20)
+
+            reward += (current_damage - previous_damage) * 0.2  # reward for hitting
+    else:
+        reward -= 0.1
+
+else:
+    reward -= 0.01  # not aiming at player
+
+    # Penalized if mf is randomly shooting (this aint o-block lil bro)
+    if shot_fired:
+        reward -= 0.3
+
+return reward
