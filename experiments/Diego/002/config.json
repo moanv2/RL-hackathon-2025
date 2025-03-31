@@ -1,0 +1,13 @@
+{
+    "frame_skip": 4,
+    "tick_limit": 2400,
+    "num_epochs": 50,
+    "action_size": 56,
+    "hyperparameters": {
+        "double_dqn": true,
+        "learning_rate": 0.0003,
+        "batch_size": 64,
+        "gamma": 0.98,
+        "epsilon_decay": 0.9999
+    }
+}
