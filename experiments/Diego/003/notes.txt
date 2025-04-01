@@ -1,0 +1,46 @@
+1. This bot will contain all of the variables in our original equation.
+  Reward vars
+        R = w₁D + w₂AP + w₃M + w₄E + w₅LP
+
+1. Distance = getting closer to player
+2. Accuracy / Precision = more accuracy
+3. Movement efficiency =
+4. Bot exploration =
+5. Track Learning Progress =
+
+Observations:
+1. Learns much quicker than 02
+2. Balanced out the variables and doesn't fluctuate as much
+2b. Spikes in the graph represent when a bot got a kill
+3. Learns more linearly which is amazing
+4.
+
+Future direction:
+1. Change algorithm from DQN to Rainbow
+2. Instead of linear equation make it logarithmic
+3. Still some unbalanced variables to tune, maybe with a deep learning model it will
+improve. But still should tune hyperparams (only the ones we are comfortable with)
+3b. Before u say shit, literature review a gap is that ppl don't do this and want to know why
+
+
+
+
+For bot 04
+
+CONFIG = {
+    "frame_skip": 4,
+    "tick_limit": 1800, # from 2400 making episodes shorter
+    "num_epochs": 150,
+    "action_size": 56,
+    "hyperparameters": {
+        "double_dqn": True,
+        "learning_rate": 0.0004,
+        "batch_size": 64,
+        "gamma": 0.98,
+        "epsilon_decay": 0.999,
+        "target_update_frequency": 1000,  # Update target network every 1000 steps
+        "prioritized_replay": True,       # Weight important transitions higher
+        "prioritized_replay_alpha": 0.6,  # How much prioritization to use
+        "prioritized_replay_beta": 0.4,   # How much to correct for prioritized sampling
+    }
+}
