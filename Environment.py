@@ -66,6 +66,7 @@ class Env:
         self.last_kills = {}
         self.last_health = {}
         self.visited_areas = {}
+        self.learning_metrics = {}          # learning rate tracking
 
         self.visited_areas.clear()
         self.last_positions.clear()
@@ -121,6 +122,7 @@ class Env:
         self.last_kills = {}
         self.last_health = {}
         self.visited_areas = {}
+        self.learning_metrics = {}  # to reset learning metrics
 
         self.steps = 0
 
@@ -290,7 +292,92 @@ class Env:
         else:
             # return the final state from the last frame
             return False, final_info
-        
+
+    def bot_exploration(self, info):
+        """
+        Track and reward exploration within the env
+        :param info: Access to player information specifically location and previously visited positions
+        :return: Dictionary with exploration metrics
+        """
+        location = info.get("location")
+        username = info.get("username")
+
+        if username not in self.visited_areas:
+            # Calculate grid size
+            grid_cell_size = int(self.world_width * 0.05)  # 5% of world width
+            grid_width = int(self.world_width / grid_cell_size)
+            grid_height = int(self.world_height / grid_cell_size)
+
+            self.visited_areas[username] = {
+                "grid": [[0 for _ in range(grid_height)] for _ in range(grid_width)],
+                "total_cells": grid_width * grid_height,
+                "grid_cell_size": grid_cell_size  # Store this for future reference
+            }
+
+        # Move this section outside the if block so it runs every time
+        # Get the stored grid cell size
+        grid_cell_size = self.visited_areas[username]["grid_cell_size"]
+
+        # Convert location to grid coordinates
+        grid_x = min(int(location[0] / grid_cell_size), len(self.visited_areas[username]["grid"]) - 1)
+        grid_y = min(int(location[1] / grid_cell_size), len(self.visited_areas[username]["grid"][0]) - 1)
+
+        # Mark as visited
+        self.visited_areas[username]["grid"][grid_x][grid_y] = 1
+
+        # Calculate exploration score (percentage of map explored)
+        visited_count = sum(sum(row) for row in self.visited_areas[username]["grid"])
+        exploration_score = visited_count / self.visited_areas[username]["total_cells"]
+
+        return {
+            "exploration_score": exploration_score,
+            "visited_count": visited_count,
+            "total_cells": self.visited_areas[username]["total_cells"]
+        }
+
+    def track_learning_progress(self, bot_username, current_reward):
+        """
+        Track learning progress for each bot based on reward improvements
+        :param bot_username: The bot to track
+        :param current_reward: Current episode reward
+        :return: Dictionary with learning metrics
+        """
+        # Initialize tracking for this bot if not already done
+        if bot_username not in self.learning_metrics:
+            self.learning_metrics[bot_username] = {
+                "previous_avg_reward": 0,
+                "reward_history": [],
+                "learning_rate_score": 0
+            }
+
+        # Add current reward to history
+        self.learning_metrics[bot_username]["reward_history"].append(current_reward)
+
+        # Keep only last 10 rewards for moving average
+        if len(self.learning_metrics[bot_username]["reward_history"]) > 10:
+            self.learning_metrics[bot_username]["reward_history"].pop(0)
+
+        # Calculate recent average reward
+        recent_avg_reward = sum(self.learning_metrics[bot_username]["reward_history"]) / len(
+            self.learning_metrics[bot_username]["reward_history"])
+        previous_avg_reward = self.learning_metrics[bot_username]["previous_avg_reward"]
+
+        # Calculate improvement as learning rate score
+        learning_rate_score = 0
+        if previous_avg_reward != 0:
+            improvement = (recent_avg_reward - previous_avg_reward) / abs(previous_avg_reward)
+            # Normalize improvement to 0-1 range, cap at 1.0
+            learning_rate_score = min(1.0, max(0, improvement))
+
+        # Update previous average reward
+        self.learning_metrics[bot_username]["previous_avg_reward"] = recent_avg_reward
+        self.learning_metrics[bot_username]["learning_rate_score"] = learning_rate_score
+
+        return {
+            "learning_rate_score": learning_rate_score,
+            "avg_reward": recent_avg_reward
+        }
+
     def _get_distance_to_opponent(self, info):
         """
         Euclidian distance between current bot's location and its opponent
@@ -325,6 +412,28 @@ class Env:
         return {
             "is_targeting_player": is_targeting_player,
             "shot_accuracy": shot_accuracy
+        }
+
+    def calculate_movement_efficiency(self, info):
+        """
+        Calculate how efficiently the bot is moving through the environment
+        :param info: Bot information dictionary
+        :return: Dictionary with movement efficiency metrics
+        """
+        meters_moved = info.get("meters_moved", 0)
+        total_rotation = info.get("total_rotation", 0)
+
+        # Calculate movement efficiency (distance covered per unit of rotation)
+        rotation_in_full_turns = max(1, total_rotation / 360)  # Avoid division by zero
+        movement_efficiency = meters_moved / rotation_in_full_turns
+
+        # Normalize to a 0-1 scale for the reward function
+        max_expected_efficiency = 10  # Adjust based on your environment
+        normalized_efficiency = min(1.0, movement_efficiency / max_expected_efficiency)
+
+        return {
+            "movement_efficiency": movement_efficiency,
+            "normalized_efficiency": normalized_efficiency
         }
 
     def calculate_reward(self, info_dictionary, bot_username, previous_info):
@@ -386,6 +495,21 @@ class Env:
                 # same as above capping limit
                 damage_diff = min(damage_diff, 20)
                 reward += damage_diff * 0.2  # reward for hitting
+
+        # Exploration
+        exploration_metrics = self.bot_exploration(player_current_info)
+        exploration_score = exploration_metrics["exploration_score"]
+        reward += exploration_score * 0.15
+
+        # Movement efficiency
+        efficiency_metrics = self.calculate_movement_efficiency(player_current_info)
+        movement_efficiency = efficiency_metrics["normalized_efficiency"]
+        reward += movement_efficiency * 0.12
+
+        # Track and get learning rate metrics
+        learning_metrics = self.track_learning_progress(bot_username, reward)
+        learning_rate_score = learning_metrics["learning_rate_score"]
+        reward += learning_rate_score * 0.1
 
         return reward
 
