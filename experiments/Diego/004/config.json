@@ -1,0 +1,19 @@
+{
+    "frame_skip": 4,
+    "tick_limit": 2400,
+    "num_epochs": 30,
+    "action_size": 56,
+    "input_dim": 38,
+    "hyperparameters": {
+        "learning_rate": 0.0003,
+        "batch_size": 64,
+        "gamma": 0.98,
+        "n_step": 3,
+        "atom_size": 51,
+        "v_min": -10,
+        "v_max": 10,
+        "alpha": 0.6,
+        "beta": 0.4,
+        "target_update_freq": 1000
+    }
+}
