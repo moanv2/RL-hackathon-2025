@@ -175,7 +175,8 @@ class Character:
                 print("is reloading (technically)")
 
         else:
-            logging.debug("no ammo")
+            # logging.debug("no ammo")
+            pass
 
     "<<<<FOR USERS END>>>>"
     """UTILITIES"""
