@@ -1,0 +1,1 @@
+Basically just made a reward function with chatgpt, and gave some weights to each term in an arbitrary way just to get started
