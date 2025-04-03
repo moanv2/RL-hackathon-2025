@@ -23,7 +23,7 @@ DISPLAY_HEIGHT = 800
 CONFIG = {
     "frame_skip": 4,
     "tick_limit": 2400,
-    "num_epochs": 50,
+    "num_epochs": 100,
     "action_size": 56,
     "hyperparameters": {
         "double_dqn": True,

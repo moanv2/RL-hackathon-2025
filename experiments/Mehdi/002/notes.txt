@@ -1,0 +1,1 @@
+changed the weights of the reward function. Trained for 100 epochs, but here i'm putting the result after 50 epochs.

@@ -443,14 +443,15 @@ class Env:
         """
         reward = 0
 
-        health_penalty_weight = 0.1
-        damage_reward_weight = 0.1
-        kill_reward_weight = 100
-        movement_reward_weight = 0.01
-        rotation_penalty_weight = 0.01
-        ammo_penalty_weight = 0.01
-        approach_reward_weight = 0.1
-        death_penalty = 100
+        health_penalty_weight = 0.2
+        damage_reward_weight = 0.2
+        kill_reward_weight = 50
+        movement_reward_weight = 0.05
+        rotation_penalty_weight = 0.005
+        ammo_penalty_weight = 0.1
+        approach_reward_weight = 0.02
+        death_penalty = 75
+
 
         players_info = info_dictionary.get("players_info", {})
         player_current_info = players_info.get(bot_username)
