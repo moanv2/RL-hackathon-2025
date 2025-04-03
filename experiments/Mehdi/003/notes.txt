@@ -1,0 +1,1 @@
+Trained for 100 epochs, with exactly same config as experiment 002
