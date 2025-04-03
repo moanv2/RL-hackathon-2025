@@ -495,5 +495,21 @@ class Env:
         # Penalize death
         if not player_current_info["alive"] and player_previous_info["alive"]:
             reward -= death_penalty
+        
+        # Reward when it is looking at opponent
+        ray_reward = 0
+        ray_reward_weight = 2.0   
+        center_ray_bonus_weight = 5.0
+
+        rays = player_current_info.get("rays", [])
+        for i, ray in enumerate(rays):
+            hit_type = ray[-1]
+            if hit_type == 'player':
+                if i == 2:  # middle ray (the one that shoots)
+                    ray_reward += center_ray_bonus_weight
+                else:
+                    ray_reward += ray_reward_weight
+
+        reward += ray_reward
 
         return reward
