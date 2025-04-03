@@ -1,0 +1,1 @@
+Same config as model 004. Train for 100 epochs.
