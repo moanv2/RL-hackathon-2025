@@ -11,6 +11,7 @@ import torch
 from bots.clean_bot import BestBot
 from bots.example_bot import MyBot
 from components.character import Character
+from example_bot_1 import RainbowDQNAgent
 from Environment import Env
 
 
@@ -210,7 +211,7 @@ def main():
     # Choose between training mode and display mode
     if training_mode:
         for _ in players:
-            bot = MyBot(action_size=CONFIG["action_size"])
+            bot = RainbowDQNAgent(action_size=CONFIG["action_size"])
             bot.use_double_dqn = CONFIG["hyperparameters"]["double_dqn"]
             bot.learning_rate = CONFIG["hyperparameters"]["learning_rate"]
             bot.batch_size = CONFIG["hyperparameters"]["batch_size"]
@@ -265,7 +266,7 @@ def main():
     else:
         # Display mode - run the game for human viewing
         trained_model_paths = [
-            "experiments/Mehdi/005/bot_model_1.pth"
+            "experiments/Diego/001/bot_model_0.pth"
         ]
         for idx, model_path in enumerate(trained_model_paths):
             bot = MyBot(action_size=CONFIG["action_size"])
@@ -274,8 +275,15 @@ def main():
             bot.epsilon = 0.0  # Full exploitation during display
             bots.append(bot)
 
-        best_bot = BestBot()
-        bots.append(best_bot)
+        bot = RainbowDQNAgent(action_size=CONFIG["action_size"])
+        bot.use_double_dqn = CONFIG["hyperparameters"]["double_dqn"]
+        bot.learning_rate = CONFIG["hyperparameters"]["learning_rate"]
+        bot.batch_size = CONFIG["hyperparameters"]["batch_size"]
+        bot.gamma = CONFIG["hyperparameters"]["gamma"]
+        bot.epsilon_decay = CONFIG["hyperparameters"]["epsilon_decay"]
+        bot.optimizer = torch.optim.Adam(bot.model.parameters(), lr=bot.learning_rate)
+        bots.append(bot)
+
 
         # --- link players and bots to environment ---
         env.set_players_bots_objects(players, bots)

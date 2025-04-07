@@ -93,8 +93,10 @@ class RainbowDQN(nn.Module):
                 action = expected_value.argmax(1).item()
             else:
                 action = random.randrange(self.output_dim)
-
             return action
+
+
+
 
 
 # Noisy Linear Layer for exploration
@@ -309,6 +311,7 @@ class RainbowDQNAgent:
 
         # Hyperparameters
         self.gamma = 0.99
+        self.epsilon = 1
         self.learning_rate = 0.0001
         self.batch_size = 64
         self.min_memory_size = 1000
@@ -343,13 +346,13 @@ class RainbowDQNAgent:
         self.position_resolution = 50
 
         # Create networks - online and target
-        self.online_net = RainbowDQN(input_dim, action_size, self.atom_size, self.v_min, self.v_max).to(self.device)
-        self.target_net = RainbowDQN(input_dim, action_size, self.atom_size, self.v_min, self.v_max).to(self.device)
-        self.target_net.load_state_dict(self.online_net.state_dict())
-        self.target_net.eval()  # Target network always in eval mode
+        self.model = RainbowDQN(self.input_dim, self.action_size, self.atom_size, self.v_min, self.v_max).to(self.device)
+        self.target_model = RainbowDQN(self.input_dim, self.action_size, self.atom_size, self.v_min, self.v_max).to(self.device)
+        self.target_model.load_state_dict(self.model.state_dict())
+        self.target_model.eval()  # Target network always in eval mode
 
         # Optimizer with gradient clipping
-        self.optimizer = optim.Adam(self.online_net.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
         # PER Memory
         self.memory = PrioritizedReplayBuffer(
@@ -478,11 +481,18 @@ class RainbowDQNAgent:
             }
 
             # Use noisy network exploration instead of epsilon-greedy
-            action = self.online_net.act(state_tensors)
+            action = self.model.act(state_tensors)
 
             self.last_state = state
             self.last_action = action
-            return self.action_to_dict(action)
+            action_dict = self.action_to_dict(action)
+
+            if info["rays"][2][-1] == "player":
+                action_dict['shoot'] = True
+            else:
+                action_dict['shoot'] = False
+
+            return action_dict
 
         except Exception as e:
             print(f"Error in act: {e}")
@@ -533,7 +543,7 @@ class RainbowDQNAgent:
 
                 # Reset noise in noisy layers periodically
                 if self.steps % 100 == 0:
-                    self.online_net.reset_noise()
+                    self.model.reset_noise()
 
                 # Print training progress periodically
                 if self.steps % 1000 == 0:
@@ -541,7 +551,7 @@ class RainbowDQNAgent:
 
             # Update target network
             if self.steps > 0 and self.steps % self.target_update_freq == 0:
-                self.target_net.load_state_dict(self.online_net.state_dict())
+                self.target_model.load_state_dict(self.model.state_dict())
                 print(f"Updated target network at step {self.steps}")
 
             # Reset time alive if episode done
@@ -583,18 +593,18 @@ class RainbowDQNAgent:
             weights = torch.tensor(weights, dtype=torch.float32).to(self.device)
 
             # Get current distribution
-            current_dist = self.online_net(states)
+            current_dist = self.model(states)
             current_dist = current_dist[range(self.batch_size), actions]
 
             # Get target distribution
             with torch.no_grad():
                 # Double Q-learning - select best actions using online network
-                next_q_dist = self.online_net(next_states)
+                next_q_dist = self.model(next_states)
                 next_q = (next_q_dist * self.support).sum(2)
                 next_actions = next_q.argmax(1)
 
                 # Get target distribution for those actions
-                target_dist = self.target_net(next_states)
+                target_dist = self.target_model(next_states)
                 target_dist = target_dist[range(self.batch_size), next_actions]
 
                 # Apply distributional Bellman operator
@@ -626,7 +636,7 @@ class RainbowDQNAgent:
             # Optimize
             self.optimizer.zero_grad()
             weighted_loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.online_net.parameters(), 10.0)
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 10.0)
             self.optimizer.step()
 
             # Update priorities
@@ -641,7 +651,7 @@ class RainbowDQNAgent:
         self.time_alive = 0
         self.time_since_last_shot = 0
         self.n_step_buffer = NStepBuffer(n_step=self.n_step, gamma=self.gamma)
-        self.online_net.reset_noise()  # Reset noise in all noisy layers
+        self.model.reset_noise()  # Reset noise in all noisy layers
 
         # Curriculum learning - adapt exploration as training progresses
         if self.steps > 1000000:
@@ -669,8 +679,8 @@ class RainbowDQNAgent:
     def save_to_dict(self):
         """Return a checkpoint dictionary of the training state"""
         return {
-            'online_net_state_dict': self.online_net.state_dict(),
-            'target_net_state_dict': self.target_net.state_dict(),
+            'online_net_state_dict': self.model.state_dict(),
+            'target_net_state_dict': self.target_model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'steps': self.steps,
             'hyperparameters': self.get_hyperparameters()
@@ -682,8 +692,8 @@ class RainbowDQNAgent:
             map_location = self.device
 
         # Load model weights
-        self.online_net.load_state_dict(checkpoint_dict['online_net_state_dict'])
-        self.target_net.load_state_dict(checkpoint_dict['target_net_state_dict'])
+        self.model.load_state_dict(checkpoint_dict['online_net_state_dict'])
+        self.target_model.load_state_dict(checkpoint_dict['target_net_state_dict'])
 
         # Try to load optimizer state
         try:
@@ -702,7 +712,7 @@ class RainbowDQNAgent:
 
         # Move models to correct device
         self.device = torch.device(map_location) if isinstance(map_location, str) else map_location
-        self.online_net = self.online_net.to(self.device)
-        self.target_net = self.target_net.to(self.device)
+        self.model = self.model.to(self.device)
+        self.target_model = self.target_model.to(self.device)
 
         print(f"Model loaded from checkpoint at step {self.steps}")
