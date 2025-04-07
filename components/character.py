@@ -154,6 +154,7 @@ class Character:
                 #print("still on delay", self.current_tick - self.last_shoot_tick)
                 return False
 
+            print(f"{self.username} is shooting")
             ray  = self.create_rays(num_rays=1, max_angle_view=1, distance=5000, damage=self.damage)[0]
             if ray[2] == "player":
                 print("hit player, did damage", self.damage)

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import pygame
 import torch
 
-from bots.clean_bot import BestBot
+from bots.mehdi import MehdiBot
 from bots.example_bot import MyBot
 from components.character import Character
 from Environment import Env
@@ -274,7 +274,7 @@ def main():
             bot.epsilon = 0.0  # Full exploitation during display
             bots.append(bot)
 
-        best_bot = BestBot()
+        best_bot = MehdiBot()
         bots.append(best_bot)
 
         # --- link players and bots to environment ---
