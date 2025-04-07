@@ -1,35 +1,82 @@
-import random
+import math
 
 
-class MyBot():
+class BestBot():
     def __init__(self):
-        self.name = "MyBot"
+        self.name = "BestBot"
 
-    # IMPLEMENT YOUR METHODS HERE
+    def reset_for_new_episode(self):
+        print(f"{self.name} reset for new episode, aka do nothing")
 
-    # Modify but don't rename this method
     def act(self, info):
-        # receives info dictionary from the game (for the proper player)
-        # at the end of this method you should return a dictionary of moves, for example:
-        actions = {
-            "forward": True,
-            "right": False,
-            "down": False,
-            "left": False,
-            "rotate": 0,
-            "shoot": True
-            } # in this example will make the bot go forward and shoot
-        # always include even non used/changed variables
+        try:
+            my_pos = info["location"]
+            my_rot = info["rotation"]  # 0–360
+            rays = info["rays"]
+            opponent_pos = info["closest_opponent"]
 
-        "--- example random act function ---"
-        direction = random.choice(["forward", "right", "down", "left"])
-        actions = {
-            "forward": direction == "forward",
-            "right": direction == "right",
-            "down": direction == "down",
-            "left": direction == "left",
-            "rotate": random.randint(-180, 180),  # Rotate randomly
-            "shoot": random.choice([True, False])  # Randomly decide to shoot or not
-        }
+            # --- 1. Shoot if middle ray hits player ---
+            if rays[2][-1] == "player":
+                return {
+                    "forward": False,
+                    "right": False,
+                    "down": False,
+                    "left": False,
+                    "rotate": 0,
+                    "shoot": True,
+                }
 
-        return actions
+            # --- 2. Rotate toward opponent ---
+            def get_target_angle(bot_pos, enemy_pos):
+                dx = enemy_pos[0] - bot_pos[0]
+                dy = enemy_pos[1] - bot_pos[1]
+                angle = (math.degrees(math.atan2(dy, dx)) + 360) % 360
+                angle = (450 - angle) % 360  # rotate coordinate system: 0° = up, clockwise
+                return angle
+
+
+            def get_signed_angle_diff(current, target):
+                # Returns diff in range [-180, 180]
+                diff = (target - current + 540) % 360 - 180
+                return diff
+
+            target_angle = get_target_angle(my_pos, opponent_pos)
+            signed_diff = get_signed_angle_diff(my_rot, target_angle)
+
+            rotate_speed = 5
+            dead_zone = 5  # more generous dead zone
+
+            print(f"Signed angle diff: {signed_diff:.2f}")
+
+            if abs(signed_diff) > dead_zone:
+                rotate = rotate_speed if signed_diff > 0 else -rotate_speed
+                print("Rotating", "right" if signed_diff > 0 else "left")
+                return {
+                    "forward": False,
+                    "right": False,
+                    "down": False,
+                    "left": False,
+                    "rotate": rotate,
+                    "shoot": False,
+                }
+            else:
+                print("Within dead zone — aligned")
+                return {
+                    "forward": True,
+                    "right": False,
+                    "down": False,
+                    "left": False,
+                    "rotate": 0,
+                    "shoot": False,
+                }
+
+        except Exception as e:
+            print(f"Error in act: {e}")
+            return {
+                "forward": False,
+                "right": False,
+                "down": False,
+                "left": False,
+                "rotate": 0,
+                "shoot": False,
+            }

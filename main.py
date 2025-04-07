@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pygame
 import torch
 
+from bots.clean_bot import BestBot
 from bots.example_bot import MyBot
 from components.character import Character
 from Environment import Env
@@ -264,7 +265,6 @@ def main():
     else:
         # Display mode - run the game for human viewing
         trained_model_paths = [
-            "experiments/Mehdi/005/bot_model_0.pth",
             "experiments/Mehdi/005/bot_model_1.pth"
         ]
         for idx, model_path in enumerate(trained_model_paths):
@@ -273,6 +273,9 @@ def main():
             bot.target_model.load_state_dict(bot.model.state_dict())  # Keep target model in sync
             bot.epsilon = 0.0  # Full exploitation during display
             bots.append(bot)
+
+        best_bot = BestBot()
+        bots.append(best_bot)
 
         # --- link players and bots to environment ---
         env.set_players_bots_objects(players, bots)
