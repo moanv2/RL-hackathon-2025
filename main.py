@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import pygame
 import torch
 
-from bots.clean_bot import BestBot
+from bots.mehdi import MehdiBot
 from bots.example_bot import MyBot
 from components.character import Character
 from example_bot_1 import RainbowDQNAgent

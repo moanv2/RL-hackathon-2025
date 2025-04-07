@@ -14,6 +14,11 @@ def find_all_bot_paths(root_dir):
         for file in files:
             if file.endswith(".pth"):
                 bot_paths.append(os.path.join(root, file))
+
+    return [
+        "experiments/Mehdi/005/bot_model_0.pth",
+        "experiments/Mehdi/005/bot_model_1.pth"
+    ]
     return bot_paths
 
 
