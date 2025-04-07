@@ -37,8 +37,21 @@ class MehdiBot():
         print(f"Angle between view and enemy: {angle:.2f}°")
 
         if angle < 5:  # within 5 degrees
-            print("Aligned with enemy! SHOOT")
-            return {"rotate": 0, "shoot": True, "forward": False, "left": False, "right": False, "down": False}
+            shoot = False
+            if ray[-1] == "player":
+                print("Aligned with enemy! SHOOT")
+                shoot = True
+            else:
+                print("Looking at enemy, but there is an obstacle in front. I probably need to move")
+
+            return {
+                "rotate": 0, 
+                "shoot": shoot, 
+                "forward": False, 
+                "left": False,
+                "right": False, 
+                "down": False
+            }
         else:
             # Always rotate right
             print("Not aligned → rotating right")
