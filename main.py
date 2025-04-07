@@ -206,21 +206,21 @@ def main():
     ]
 
     bots = []
-    for _ in players:
-        bot = MyBot(action_size=CONFIG["action_size"])
-        bot.use_double_dqn = CONFIG["hyperparameters"]["double_dqn"]
-        bot.learning_rate = CONFIG["hyperparameters"]["learning_rate"]
-        bot.batch_size = CONFIG["hyperparameters"]["batch_size"]
-        bot.gamma = CONFIG["hyperparameters"]["gamma"]
-        bot.epsilon_decay = CONFIG["hyperparameters"]["epsilon_decay"]
-        bot.optimizer = torch.optim.Adam(bot.model.parameters(), lr=bot.learning_rate)
-        bots.append(bot)
-
-    # --- link players and bots to environment ---
-    env.set_players_bots_objects(players, bots)
-
     # Choose between training mode and display mode
     if training_mode:
+        for _ in players:
+            bot = MyBot(action_size=CONFIG["action_size"])
+            bot.use_double_dqn = CONFIG["hyperparameters"]["double_dqn"]
+            bot.learning_rate = CONFIG["hyperparameters"]["learning_rate"]
+            bot.batch_size = CONFIG["hyperparameters"]["batch_size"]
+            bot.gamma = CONFIG["hyperparameters"]["gamma"]
+            bot.epsilon_decay = CONFIG["hyperparameters"]["epsilon_decay"]
+            bot.optimizer = torch.optim.Adam(bot.model.parameters(), lr=bot.learning_rate)
+            bots.append(bot)
+        
+        # --- link players and bots to environment ---
+        env.set_players_bots_objects(players, bots)
+
         all_rewards = {player.username: [] for player in players}
 
         # --- training Loop ---
@@ -263,6 +263,20 @@ def main():
 
     else:
         # Display mode - run the game for human viewing
+        trained_model_paths = [
+            "experiments/Mehdi/005/bot_model_0.pth",
+            "experiments/Mehdi/005/bot_model_1.pth"
+        ]
+        for idx, model_path in enumerate(trained_model_paths):
+            bot = MyBot(action_size=CONFIG["action_size"])
+            bot.model.load_state_dict(torch.load(model_path, map_location=bot.device))
+            bot.target_model.load_state_dict(bot.model.state_dict())  # Keep target model in sync
+            bot.epsilon = 0.0  # Full exploitation during display
+            bots.append(bot)
+
+        # --- link players and bots to environment ---
+        env.set_players_bots_objects(players, bots)
+
         run_game(env, players, bots)
 
 
