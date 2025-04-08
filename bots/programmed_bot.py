@@ -1,9 +1,9 @@
 import math
 
 
-class MehdiBot():
+class ProgrammedBot():
     def __init__(self):
-        self.name = "Mehdi"
+        self.name = "Von"
         self.max_rotation_speed = 45
 
     def reset_for_new_episode(self):

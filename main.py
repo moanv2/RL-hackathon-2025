@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import pygame
 import torch
 
-from bots.mehdi import MehdiBot
+from bots.programmed_bot import ProgrammedBot
 from bots.example_bot import MyBot
 from components.character import Character
 from Environment import Env
@@ -203,7 +203,7 @@ def main():
         Character(starting_pos=(world_bounds[2] - 100, world_bounds[3] - 100),
                   screen=env.world_surface, boundaries=world_bounds, username="Ninja"),
         Character(starting_pos=(world_bounds[0] + 10, world_bounds[1] + 10),
-                  screen=env.world_surface, boundaries=world_bounds, username="Faze Jarvis"),
+                  screen=env.world_surface, boundaries=world_bounds, username="Von"),
     ]
 
     bots = []
@@ -274,7 +274,7 @@ def main():
             bot.epsilon = 0.0  # Full exploitation during display
             bots.append(bot)
 
-        best_bot = MehdiBot()
+        best_bot = ProgrammedBot()
         bots.append(best_bot)
 
         # --- link players and bots to environment ---
