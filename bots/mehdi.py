@@ -63,8 +63,6 @@ class MehdiBot():
         view_dir = (ray_end[0] - ray_start[0], ray_end[1] - ray_start[1])
 
         angle = self.get_angle_between_vectors(view_dir, to_enemy)
-        print(f"Angle between view and enemy: {angle:.2f}°")
-
 
         shoot = False
         if ray[-1] == "player":
@@ -74,12 +72,20 @@ class MehdiBot():
         rotation_direction = self.get_order_direction(info["rays"], to_enemy)
         rotation_speed = self.get_rotation_speed(angle)
 
+        bot_x, bot_y = bot_pos
+        enemy_x, enemy_y = enemy_pos
+
+        move_right = enemy_x > bot_x
+        move_left = enemy_x < bot_x
+        move_down = enemy_y > bot_y
+        move_up = enemy_y < bot_y
+
         return {
             "shoot": shoot, 
             "rotate": rotation_speed * rotation_direction, 
-            "forward": False, 
-            "left": False,
-            "right": False, 
-            "down": False
+            "left": move_left,
+            "right": move_right, 
+            "forward": move_up, 
+            "down": move_down
         }
         
