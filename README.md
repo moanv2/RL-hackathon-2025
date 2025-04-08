@@ -1,5 +1,8 @@
 # AI Bot Development Hackathon
 
+## Submission
+Our submission is inside the submission folder (it's just a `bot.py` file, but it also has a README.md to explain how to use it in case).
+
 ## Instructions to run:
 - **You can run the script in training mode with:**
 ```
