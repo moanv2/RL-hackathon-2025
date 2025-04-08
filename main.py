@@ -266,8 +266,7 @@ def main():
     else:
         # Display mode - run the game for human viewing
         trained_models = [
-            ("path_to_old_model_weights", "old"),
-            ("path_to_new_model_architecture_weights", "new")
+            ("experiments/Diego/005/bot_model_0_epoch_13.pth", "new")
         ]
         for idx, model in enumerate(trained_models):
             (model_path, architecture) = model

@@ -52,40 +52,50 @@ class ProgrammedBot():
         
 
     def act(self, info):
-        # From bot to enemy
-        bot_pos = info["location"]
-        enemy_pos = info["closest_opponent"]
-        to_enemy = (enemy_pos[0] - bot_pos[0], enemy_pos[1] - bot_pos[1])
+        try:
+            # From bot to enemy
+            bot_pos = info["location"]
+            enemy_pos = info["closest_opponent"]
+            to_enemy = (enemy_pos[0] - bot_pos[0], enemy_pos[1] - bot_pos[1])
 
-        # Viewing direction vector (from center ray)
-        ray = info["rays"][2]  # assuming index 2 is center
-        ray_start, ray_end = ray[0]
-        view_dir = (ray_end[0] - ray_start[0], ray_end[1] - ray_start[1])
+            # Viewing direction vector (from center ray)
+            ray = info["rays"][2]  # assuming index 2 is center
+            ray_start, ray_end = ray[0]
+            view_dir = (ray_end[0] - ray_start[0], ray_end[1] - ray_start[1])
 
-        angle = self.get_angle_between_vectors(view_dir, to_enemy)
+            angle = self.get_angle_between_vectors(view_dir, to_enemy)
 
-        shoot = False
-        if ray[-1] == "player":
-            print("Aligned with enemy! SHOOT")
-            shoot = True
-            
-        rotation_direction = self.get_order_direction(info["rays"], to_enemy)
-        rotation_speed = self.get_rotation_speed(angle)
+            shoot = False
+            if ray[-1] == "player":
+                print("Aligned with enemy! SHOOT")
+                shoot = True
+                
+            rotation_direction = self.get_order_direction(info["rays"], to_enemy)
+            rotation_speed = self.get_rotation_speed(angle)
 
-        bot_x, bot_y = bot_pos
-        enemy_x, enemy_y = enemy_pos
+            bot_x, bot_y = bot_pos
+            enemy_x, enemy_y = enemy_pos
 
-        move_right = enemy_x > bot_x
-        move_left = enemy_x < bot_x
-        move_down = enemy_y > bot_y
-        move_up = enemy_y < bot_y
+            move_right = enemy_x > bot_x
+            move_left = enemy_x < bot_x
+            move_down = enemy_y > bot_y
+            move_up = enemy_y < bot_y
 
-        return {
-            "shoot": shoot, 
-            "rotate": rotation_speed * rotation_direction, 
-            "left": move_left,
-            "right": move_right, 
-            "forward": move_up, 
-            "down": move_down
-        }
-        
+            return {
+                "shoot": shoot, 
+                "rotate": rotation_speed * rotation_direction, 
+                "left": move_left,
+                "right": move_right, 
+                "forward": move_up, 
+                "down": move_down
+            }
+        except Exception as e:
+            print(f"Error: {e}")
+            return {
+                "shoot": True, 
+                "rotate": 0, 
+                "left": False,
+                "right": False, 
+                "forward": False, 
+                "down": False
+            }
