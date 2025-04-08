@@ -4,6 +4,7 @@ import math
 class MehdiBot():
     def __init__(self):
         self.name = "Mehdi"
+        self.max_rotation_speed = 45
 
     def reset_for_new_episode(self):
         print(f"{self.name} reset for new episode, aka do nothing")
@@ -46,8 +47,9 @@ class MehdiBot():
         
         return 1
     
-    def get_rotation_speed(self):
-        return 1
+    def get_rotation_speed(self, angle):
+        return self.max_rotation_speed * (angle / 180)
+        
 
     def act(self, info):
         # From bot to enemy
@@ -63,41 +65,21 @@ class MehdiBot():
         angle = self.get_angle_between_vectors(view_dir, to_enemy)
         print(f"Angle between view and enemy: {angle:.2f}°")
 
-        if angle < 1:  # within 5 degrees
-            shoot = False
-            if ray[-1] == "player":
-                print("Aligned with enemy! SHOOT")
-                shoot = True
-            else:
-                print("Looking at enemy, but there is an obstacle in front. I probably need to move")
 
-            return {
-                "rotate": 0, 
-                "shoot": shoot, 
-                "forward": False, 
-                "left": False,
-                "right": False, 
-                "down": False
-            }
-        else:
-            rotation_speed = self.get_rotation_speed()
-            rotation_direction = self.get_order_direction(info["rays"], to_enemy)
+        shoot = False
+        if ray[-1] == "player":
+            print("Aligned with enemy! SHOOT")
+            shoot = True
             
-            return {
-                "forward": False,
-                "right": False,
-                "down": False,
-                "left": False,
-                "rotate": rotation_speed * rotation_direction,
-                "shoot": False,
-            }
-        
-        return {
-            "rotate": 0, 
-            "shoot": False, 
-            "forward": False, 
-            "left": False, 
-            "right": False, 
-            "down": False}
+        rotation_direction = self.get_order_direction(info["rays"], to_enemy)
+        rotation_speed = self.get_rotation_speed(angle)
 
+        return {
+            "shoot": shoot, 
+            "rotate": rotation_speed * rotation_direction, 
+            "forward": False, 
+            "left": False,
+            "right": False, 
+            "down": False
+        }
         
