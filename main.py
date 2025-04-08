@@ -265,25 +265,25 @@ def main():
 
     else:
         # Display mode - run the game for human viewing
-        trained_model_paths = [
-            "experiments/Diego/001/bot_model_0.pth"
+        trained_models = [
+            ("path_to_old_model_weights", "old"),
+            ("path_to_new_model_architecture_weights", "new")
         ]
-        for idx, model_path in enumerate(trained_model_paths):
-            bot = MyBot(action_size=CONFIG["action_size"])
-            bot.model.load_state_dict(torch.load(model_path, map_location=bot.device))
-            bot.target_model.load_state_dict(bot.model.state_dict())  # Keep target model in sync
-            bot.epsilon = 0.0  # Full exploitation during display
+        for idx, model in enumerate(trained_models):
+            (model_path, architecture) = model
+            if architecture == "old":
+                bot = MyBot(action_size=CONFIG["action_size"])
+                bot.model.load_state_dict(torch.load(model_path, map_location=bot.device))
+                bot.target_model.load_state_dict(bot.model.state_dict())  # Keep target model in sync
+                bot.epsilon = 0.0  # Full exploitation during display
+                
+            else:
+                bot = RainbowDQNAgent(action_size=CONFIG["action_size"])
+                bot.model.load_state_dict(torch.load(model_path, map_location=bot.device))
+                bot.target_model.load_state_dict(bot.model.state_dict())  # Keep target model in sync
+                bot.epsilon = 0.0  # Full exploitation during display
+
             bots.append(bot)
-
-        bot = RainbowDQNAgent(action_size=CONFIG["action_size"])
-        bot.use_double_dqn = CONFIG["hyperparameters"]["double_dqn"]
-        bot.learning_rate = CONFIG["hyperparameters"]["learning_rate"]
-        bot.batch_size = CONFIG["hyperparameters"]["batch_size"]
-        bot.gamma = CONFIG["hyperparameters"]["gamma"]
-        bot.epsilon_decay = CONFIG["hyperparameters"]["epsilon_decay"]
-        bot.optimizer = torch.optim.Adam(bot.model.parameters(), lr=bot.learning_rate)
-        bots.append(bot)
-
 
         # --- link players and bots to environment ---
         env.set_players_bots_objects(players, bots)
