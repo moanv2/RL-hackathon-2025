@@ -21,6 +21,33 @@ class MehdiBot():
         cos_theta = max(min(dot / (norm_a * norm_b), 1.0), -1.0)
         angle_rad = math.acos(cos_theta)
         return math.degrees(angle_rad)
+    
+    def get_order_direction(self, rays, to_enemy):
+        """
+        Check external rays angle with to_enemy. the closest one means going to that direction
+
+        Returns
+            int: 1 (for clockwise rotation) or -1 (for anti clockwise rotation)
+        """
+        
+        left_ray = rays[0]
+        left_ray_start, left_ray_end = left_ray[0]
+        left_view_dir = (left_ray_end[0] - left_ray_start[0], left_ray_end[1] - left_ray_start[1])
+
+        right_ray = rays[-1]
+        right_ray_start, right_ray_end = right_ray[0]
+        right_view_dir = (right_ray_end[0] - right_ray_start[0], right_ray_end[1] - right_ray_start[1])
+
+        left_angle = self.get_angle_between_vectors(left_view_dir, to_enemy)
+        right_angle = self.get_angle_between_vectors(right_view_dir, to_enemy)
+
+        if left_angle < right_angle:
+            return -1
+        
+        return 1
+    
+    def get_rotation_speed(self):
+        return 1
 
     def act(self, info):
         # From bot to enemy
@@ -36,7 +63,7 @@ class MehdiBot():
         angle = self.get_angle_between_vectors(view_dir, to_enemy)
         print(f"Angle between view and enemy: {angle:.2f}°")
 
-        if angle < 5:  # within 5 degrees
+        if angle < 1:  # within 5 degrees
             shoot = False
             if ray[-1] == "player":
                 print("Aligned with enemy! SHOOT")
@@ -53,14 +80,15 @@ class MehdiBot():
                 "down": False
             }
         else:
-            # Always rotate right
-            print("Not aligned → rotating right")
+            rotation_speed = self.get_rotation_speed()
+            rotation_direction = self.get_order_direction(info["rays"], to_enemy)
+            
             return {
                 "forward": False,
                 "right": False,
                 "down": False,
                 "left": False,
-                "rotate": 5,  # clockwise rotation
+                "rotate": rotation_speed * rotation_direction,
                 "shoot": False,
             }
         
